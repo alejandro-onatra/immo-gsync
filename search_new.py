@@ -1,6 +1,108 @@
 import requests
 import json
 
+# GoogleClassManager
+import os.path
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+
+
+class GoogleSheetManager:
+
+    token_file = 'token.json'
+    credentials_file = 'credentials-personal.json'
+    scopes = ['https://www.googleapis.com/auth/spreadsheets']
+    sheet_id = None
+
+    configuration = None
+    credentials = None
+    service = None
+
+    def __init__(self, configuration):
+        self.configuration = configuration
+        if 'token_file' in configuration:
+            self.token_file = configuration['token_file']
+        if 'credentials_file' in configuration:
+            self.configuration = configuration['credentials_file']
+        if 'scopes' in configuration:
+            self.scopes = configuration['scopes']
+        if 'sheet_id' in configuration:
+            self.sheet_id = configuration['sheet_id']
+        self._authenticate()
+        self._get_service()
+
+    def set_spreadsheet(self, sheet_id):
+        self.sheet_id = sheet_id
+
+    def _authenticate(self):
+        creds = None
+        if os.path.exists(self.token_file):
+            creds = Credentials.from_authorized_user_file(self.token_file, self.scopes)
+
+        if creds and creds.valid:
+            self.credentials = creds
+            return
+
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(self.credentials_file, self.scopes)
+            creds = flow.run_local_server(port=0)
+
+        with open(self.token_file, 'w') as token:
+            token.write(creds.to_json())
+
+        self.credentials = creds
+
+    def _get_service(self):
+        self.service = build('sheets', 'v4', credentials=self.credentials)
+
+    def get_table_data_as_map(self, sheet_range):
+        sheet = self.service.spreadsheets()
+        result = sheet.values().get(spreadsheetId=self.sheet_id, range=sheet_range).execute()
+        values = result.get('values', [])
+
+        if not values:
+            print('ERROR:: No data found.')
+
+        # Get the columns to describe the rows, assume it will be in the header
+        header = values[0]
+        header_size = len(header)
+        sheet_rows = []
+        for row_number in range(1, len(values),1):
+            element_as_map = {}
+            for column_number in range(header_size-1):
+                element_as_map[header[column_number]] = values[row_number][column_number]
+            sheet_rows.append(element_as_map)
+
+        print(json.dumps(sheet_rows, indent=3))
+        return sheet_rows
+
+    def set_table_data_from_map(self, sheet_range, data_as_map):
+        values = [list(data_as_map[0].keys())]
+        for row in data_as_map:
+            values.append(list(row.values()))
+        body = {
+            'values': values
+        }
+        result = self.service.spreadsheets().values().update(
+            spreadsheetId=self.sheet_id, valueInputOption='RAW', range=sheet_range, body=body
+        ).execute()
+        print('{0} cells updated.'.format(result.get('updatedCells')))
+
+    def append_table_data_from_map(self, sheet_range, data_as_map):
+        values = [list(data_as_map[0].keys())]
+        for row in data_as_map:
+            values.append(list(row.values()))
+        body = {
+            'values': values
+        }
+        result = self.service.spreadsheets().values().append(
+            spreadsheetId=self.sheet_id, valueInputOption='RAW', range=sheet_range, body=body
+        ).execute()
+        print('{0} cells updated.'.format(result.get('updatedCells')))
 
 class ApartmentIntegrationPipeline:
 
@@ -75,7 +177,7 @@ class ApartmentIntegrationPipeline:
             if processed_entry is None: continue
             processed_entries.append(processed_entry)
             self.total_success += 1
-            print(f'Processing {processed_entry}')
+            print(f'DEBUG:: Processing {processed_entry}')
 
         return processed_entries
 
@@ -131,7 +233,13 @@ class ApartmentIntegrationPipeline:
 
 if __name__ == '__main__':
 
-    first_url = 'https://www.immobilienscout24.de/Suche/de/berlin/berlin/wohnung-mieten?numberofrooms=2.0-&price=0.0-1100.0&livingspace=55.0-&equipment=builtinkitchen,balcony&pricetype=rentpermonth&geocodes=110000000406,110000000101,110000000701,110000000301,110000000201,1100000006&enteredFrom=saved_search'
-    pipeline = ApartmentIntegrationPipeline({'first_url': first_url})
-    pipeline.execute()
+    # first_url = 'https://www.immobilienscout24.de/Suche/de/berlin/berlin/wohnung-mieten?numberofrooms=2.0-&price=0.0-1100.0&livingspace=55.0-&equipment=builtinkitchen,balcony&pricetype=rentpermonth&geocodes=110000000406,110000000101,110000000701,110000000301,110000000201,1100000006&enteredFrom=saved_search'
+    # pipeline = ApartmentIntegrationPipeline({'first_url': first_url})
+    # pipeline.execute()
+
+    sheet_manager = GoogleSheetManager({
+        'sheet_id': '1hooYLbOZrmRSFggVpn4u2zfMNXt2J0asvinYVOgCoV0'
+    })
+    data = sheet_manager.get_table_data_as_map('Listado!B2:I35')
+    sheet_manager.set_table_data_from_map('ListadoTest!B2', data)
 
