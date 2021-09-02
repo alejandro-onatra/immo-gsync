@@ -1,6 +1,11 @@
 import requests
 import json
 
+total_success = 0
+total_exchange = 0
+total_rejected = 0
+total_entries = 0
+
 
 def get_search_results(url):
 
@@ -39,6 +44,8 @@ def get_apartment_metadata(search_results):
     number_of_pages = metadata['paging']['numberOfPages']
     number_of_hits = metadata['paging']['numberOfHits']
     number_of_listings = metadata['paging']['numberOfListings']
+    global total_entries
+    total_entries = number_of_listings
     if 'next' in metadata['paging']:
         next_page = metadata['paging']['next']['@xlink.href']
     else:
@@ -56,9 +63,12 @@ def get_mapped_apartment_data(search_results):
 
     print(f'DEBUG:: Processing {len(entry_list)} entries')
 
+    global total_success
     for entry in entry_list:
-        processed_entry = process_single_apartment(entry)
+        processed_entry, errors = process_single_apartment(entry)
+        if processed_entry is None: continue
         processed_entries.append(processed_entry)
+        total_success += 1
         print(f'Processing {processed_entry}')
 
     return processed_entries
@@ -67,6 +77,14 @@ def get_mapped_apartment_data(search_results):
 def process_single_apartment(entry):
 
     id = entry['@id']
+
+    title = entry['resultlist.realEstate']['title']
+    if 'tauschwohnung' in title.lower():
+        print(f'The id {id} is an exchange apartment and will be rejected')
+        global total_exchange
+        total_exchange += 1
+        return None, [{'code': 'E001', 'message': 'Exchange entries are not valid'}]
+
     address = entry['resultlist.realEstate']['address']
     if 'wgs84Coordinate' in address:
         latitude = address['wgs84Coordinate']['latitude']
@@ -89,6 +107,7 @@ def process_single_apartment(entry):
 
     processed_entry = {
         'id': id,
+        'title': title,
         'url': f'https://www.immobilienscout24.de/expose/{id}',
         'address': address,
         'maps_url': f'https://www.google.com/maps/@{latitude},{longitude}z',
@@ -111,5 +130,9 @@ if __name__ == '__main__':
     first_url = 'https://www.immobilienscout24.de/Suche/de/berlin/berlin/wohnung-mieten?numberofrooms=2.0-&price=0.0-1100.0&livingspace=55.0-&equipment=builtinkitchen,balcony&pricetype=rentpermonth&geocodes=110000000406,110000000101,110000000701,110000000301,110000000201,1100000006&enteredFrom=saved_search'
     search_results = get_search_results(first_url)
     processed_entries = process_search_results(search_results)
+    global total_success
+    global total_exchange
+    global total_entries
+    print(f'INFO:: There were {total_success} and we found {total_exchange} exchange offers from a total of {total_entries} entries')
 
 
