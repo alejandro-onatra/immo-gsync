@@ -80,9 +80,13 @@ class GoogleSheetManager:
         print(json.dumps(sheet_rows, indent=3))
         return sheet_rows
 
-    def set_table_data_from_map(self, sheet_range, data_as_map):
-        values = [list(data_as_map[0].keys())]
-        for row in data_as_map:
+    def set_table_data_from_map(self, sheet_range, data):
+        if len(data) == 0:
+            print('WARNING:: No data to process')
+            return
+
+        values = [list(data[0].keys())]
+        for row in data:
             values.append(list(row.values()))
         body = {
             'values': values
@@ -104,6 +108,7 @@ class GoogleSheetManager:
         ).execute()
         print('{0} cells updated.'.format(result.get('updatedCells')))
 
+
 class ApartmentIntegrationPipeline:
 
     total_success = 0
@@ -111,14 +116,29 @@ class ApartmentIntegrationPipeline:
     total_rejected = 0
     total_entries = 0
     configuration = None
+    sheet_range = None
+    gsheet_manager_conf = None
+
+    # ImmoLoader conf
+    first_url = None
 
     def __init__(self, configuration):
         self.configuration = configuration
+        if 'sheet_range' in configuration:
+            self.sheet_range = configuration['sheet_range']
+        self.gsheet_manager_conf = configuration['GoogleSheetManager']
+        # ImmoLoader
+        if 'first_url' in configuration:
+            self.first_url = configuration['first_url']
 
     def execute(self):
-        search_results = self._get_search_results(self.configuration['first_url'])
+        search_results = self._get_search_results(self.first_url)
         processed_entries = self._process_search_results(search_results)
         print(f'INFO:: There were {self.total_success} success and  {self.total_exchange} exchange offers from a total of {self.total_entries} entries')
+
+        sheet_manager = GoogleSheetManager(self.gsheet_manager_conf)
+        # data = sheet_manager.get_table_data_as_map(self.sheet_range)
+        sheet_manager.set_table_data_from_map(self.sheet_range, processed_entries)
 
     def _get_search_results(self, url):
 
@@ -139,10 +159,11 @@ class ApartmentIntegrationPipeline:
         processed_entries = []
         for iteration in range(number_of_pages - 1):
             mapped_entries = self._get_mapped_apartment_data(search_results)
-            processed_entries.append(mapped_entries)
+            processed_entries += mapped_entries
             search_results = self._get_search_results('https://www.immobilienscout24.de'+next_page)
             next_page, number_of_pages, page_number, page_size = self._get_apartment_metadata(search_results)
 
+        print(json.dumps(processed_entries, indent=3))
         return processed_entries
 
     def _get_apartment_metadata(self, search_results):
@@ -177,7 +198,7 @@ class ApartmentIntegrationPipeline:
             if processed_entry is None: continue
             processed_entries.append(processed_entry)
             self.total_success += 1
-            print(f'DEBUG:: Processing {processed_entry}')
+            # print(f'DEBUG:: Processing {processed_entry}')
 
         return processed_entries
 
@@ -210,13 +231,21 @@ class ApartmentIntegrationPipeline:
         else:
             energy_efficiency = 'Not available'
         contact = entry['resultlist.realEstate']['contactDetails']
+        if 'portraitUrl' in contact:
+            del contact['portraitUrl']
+        if 'portraitUrlForResultList' in contact:
+            del contact['portraitUrlForResultList']
 
+        score = (hot_rent/cold_rent) \
+                                    + room_number*(size/hot_rent) \
+                                    + 1 if built_in_kitchen else 0 \
+                                    + 1 if have_balcony else 0 \
+
+        # TODO: The nested jsons are invalid to send to gsheet, needs to be unext or stringified
         processed_entry = {
             'id': id,
             'title': title,
-            'url': f'https://www.immobilienscout24.de/expose/{id}',
-            'address': address,
-            'maps_url': f'https://www.google.com/maps/@{latitude},{longitude}z',
+            # 'address': address,
             'quarter': quarter,
             'cold_rent': cold_rent,
             'hot_rent': hot_rent,
@@ -225,7 +254,10 @@ class ApartmentIntegrationPipeline:
             'built_in_kitchen': built_in_kitchen,
             'have_balcony': have_balcony,
             'energy_efficiency': energy_efficiency,
-            'contact': contact
+            # 'contact': contact,
+            'url': f'https://www.immobilienscout24.de/expose/{id}',
+            'maps_url': f'https://www.google.com/maps/@{latitude},{longitude}z',
+            'score': score*100
         }
 
         return processed_entry, {}
@@ -233,13 +265,14 @@ class ApartmentIntegrationPipeline:
 
 if __name__ == '__main__':
 
-    # first_url = 'https://www.immobilienscout24.de/Suche/de/berlin/berlin/wohnung-mieten?numberofrooms=2.0-&price=0.0-1100.0&livingspace=55.0-&equipment=builtinkitchen,balcony&pricetype=rentpermonth&geocodes=110000000406,110000000101,110000000701,110000000301,110000000201,1100000006&enteredFrom=saved_search'
-    # pipeline = ApartmentIntegrationPipeline({'first_url': first_url})
-    # pipeline.execute()
-
-    sheet_manager = GoogleSheetManager({
-        'sheet_id': '1hooYLbOZrmRSFggVpn4u2zfMNXt2J0asvinYVOgCoV0'
+    pipeline = ApartmentIntegrationPipeline({
+        'first_url': 'https://www.immobilienscout24.de/Suche/de/berlin/berlin/wohnung-mieten?numberofrooms=2.0-&price=0.0-1100.0&livingspace=55.0-&equipment=builtinkitchen,balcony&pricetype=rentpermonth&geocodes=110000000406,110000000101,110000000701,110000000301,110000000201,1100000006&enteredFrom=saved_search',
+        'sheet_range': 'ListadoTest!B2',
+        'GoogleSheetManager': {
+            'sheet_id': '1hooYLbOZrmRSFggVpn4u2zfMNXt2J0asvinYVOgCoV0'
+        }
     })
-    data = sheet_manager.get_table_data_as_map('Listado!B2:I35')
-    sheet_manager.set_table_data_from_map('ListadoTest!B2', data)
+    pipeline.execute()
+
+
 
