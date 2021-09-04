@@ -2,7 +2,7 @@
 This is just a test to load apartments data and loads them into a google sheet to aid on my search for an apartment. 
 
 ---
-##Notes
+## [Notes](#notes)
 For now the credentials for the gsheet either you can take inject them in the main file or the system will assume names and the location will be on the __src/__
 
 ---
