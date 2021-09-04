@@ -3,7 +3,6 @@ from src.pipelines.process_apartment_data import ApartmentIntegrationPipeline
 
 if __name__ == '__main__':
     root = os.path.dirname(os.path.abspath(__file__))
-    print(root)
     pipeline = ApartmentIntegrationPipeline({
         'sheet_range': 'Listado!B2:S',
         'GoogleSheetManager': {
