@@ -1,5 +1,6 @@
 import requests
 import json
+import math
 
 # GoogleClassManager
 import os.path
@@ -7,6 +8,8 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+
+from haversine import haversine
 
 
 class GoogleSheetManager:
@@ -113,6 +116,7 @@ class ApartmentIntegrationPipeline:
 
     total_success = 0
     total_exchange = 0
+    total_wbs = 0
     total_rejected = 0
     total_entries = 0
     configuration = None
@@ -134,7 +138,7 @@ class ApartmentIntegrationPipeline:
     def execute(self):
         search_results = self._get_search_results(self.first_url)
         processed_entries = self._process_search_results(search_results)
-        print(f'INFO:: There were {self.total_success} success and  {self.total_exchange} exchange offers from a total of {self.total_entries} entries')
+        print(f'INFO:: There were {self.total_success} success, {self.total_exchange} exchange offers and {self.total_wbs} WBS from a total of {self.total_entries} entries')
 
         sheet_manager = GoogleSheetManager(self.gsheet_manager_conf)
         # data = sheet_manager.get_table_data_as_map(self.sheet_range)
@@ -211,6 +215,10 @@ class ApartmentIntegrationPipeline:
             # print(f'DEBUG:: The id {id} is an exchange apartment and will be rejected')
             self.total_exchange += 1
             return None, [{'code': 'E001', 'message': 'Exchange entries are not valid'}]
+        if 'wbs' in title.lower():
+            # print(f'DEBUG:: The id {id} requires wbs and will be rejected')
+            self.total_wbs += 1
+            return None, [{'code': 'E002', 'message': 'WBS entries are not valid'}]
 
         address = entry['resultlist.realEstate']['address']
         if 'wgs84Coordinate' in address:
@@ -235,29 +243,36 @@ class ApartmentIntegrationPipeline:
             del contact['portraitUrl']
         if 'portraitUrlForResultList' in contact:
             del contact['portraitUrlForResultList']
+        picture_number = len(entry['resultlist.realEstate']['galleryAttachments']['attachment'])
 
-        score = (hot_rent/cold_rent) \
-                                    + room_number*(size/hot_rent) \
-                                    + 1 if built_in_kitchen else 0 \
-                                    + 1 if have_balcony else 0 \
+        center_coordinates = (52.519606771749594, 13.407080083827983)
+        apartment_coordinates = (latitude, longitude)
+        distance_center = haversine(center_coordinates, apartment_coordinates) if latitude > 0 and longitude > 0 else 9999
+
+        raw_score = (20 * (size/hot_rent)) + (0.5 if built_in_kitchen else 0) + (0.5 if have_balcony else 0) + (4 * (1/distance_center)) + (room_number/8)
+        normalized_score = raw_score * 100 + picture_number
+
 
         # TODO: The nested jsons are invalid to send to gsheet, needs to be unext or stringified
         processed_entry = {
-            'id': id,
-            'title': title,
+            'application_state': 'Abierto',
+            'score': normalized_score,
             # 'address': address,
-            'quarter': quarter,
             'cold_rent': cold_rent,
             'hot_rent': hot_rent,
             'size': size,
             'room_number': room_number,
+            'quarter': quarter,
+            'distance_center': distance_center,
             'built_in_kitchen': built_in_kitchen,
             'have_balcony': have_balcony,
+            'url': f'https://www.immobilienscout24.de/expose/{id}',
+            'number_of_pics': picture_number,
             'energy_efficiency': energy_efficiency,
             # 'contact': contact,
-            'url': f'https://www.immobilienscout24.de/expose/{id}',
             'maps_url': f'https://www.google.com/maps/@{latitude},{longitude}z',
-            'score': score*100
+            'title': title,
+            'id': id,
         }
 
         return processed_entry, {}
@@ -266,8 +281,8 @@ class ApartmentIntegrationPipeline:
 if __name__ == '__main__':
 
     pipeline = ApartmentIntegrationPipeline({
-        'first_url': 'https://www.immobilienscout24.de/Suche/de/berlin/berlin/wohnung-mieten?numberofrooms=2.0-&price=0.0-1100.0&livingspace=55.0-&equipment=builtinkitchen,balcony&pricetype=rentpermonth&geocodes=110000000406,110000000101,110000000701,110000000301,110000000201,1100000006&enteredFrom=saved_search',
-        'sheet_range': 'ListadoTest!B2',
+        'first_url': 'https://www.immobilienscout24.de/Suche/radius/wohnung-mieten?centerofsearchaddress=Berlin;;;;;&numberofrooms=2.0-&price=-1100.0&livingspace=60.0-&pricetype=rentpermonth&geocoordinates=52.51051;13.43068;10.0&enteredFrom=result_list',
+        'sheet_range': 'ListadoRaw!B2',
         'GoogleSheetManager': {
             'sheet_id': '1hooYLbOZrmRSFggVpn4u2zfMNXt2J0asvinYVOgCoV0'
         }
