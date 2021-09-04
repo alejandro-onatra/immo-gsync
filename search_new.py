@@ -1,8 +1,10 @@
+import os
+
 import requests
 import json
 import math
 
-# GoogleClassManager
+# GoogleSheetManager
 import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -311,13 +313,13 @@ class DataManipulationUtils:
 if __name__ == '__main__':
 
     pipeline = ApartmentIntegrationPipeline({
-        'first_url': 'https://www.immobilienscout24.de/Suche/radius/wohnung-mieten?centerofsearchaddress=Berlin;;;;;&numberofrooms=2.0-&price=-1100.0&livingspace=60.0-&pricetype=rentpermonth&geocoordinates=52.51051;13.43068;10.0&enteredFrom=result_list',
+        'first_url': os.environ['SEARCH_URL'],
         'sheet_range': 'Listado!B2:S',
         'GoogleSheetManager': {
-            'sheet_id': '1hooYLbOZrmRSFggVpn4u2zfMNXt2J0asvinYVOgCoV0'
+            'sheet_id': os.environ['SHEET_ID']
         }
     })
     pipeline.execute()
 
 
-
+c
