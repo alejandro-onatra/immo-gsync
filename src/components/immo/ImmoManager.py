@@ -102,6 +102,12 @@ class ImmoManager:
             # print(f'DEBUG:: The id {id} requires wbs and will be rejected')
             self._total_wbs += 1
             return None, None, [{'code': 'E002', 'message': 'WBS entries are not valid'}]
+        # Process pictures
+        picture_number = 0
+        if 'galleryAttachments' in entry['resultlist.realEstate']:
+            picture_number = len(entry['resultlist.realEstate']['galleryAttachments']['attachment'])
+        if picture_number < 5:
+            return None, None, [{'code': 'E003', 'message': 'Too low number of pictures'}]
         # Process address
         address = entry['resultlist.realEstate']['address']
         if 'wgs84Coordinate' in address:
@@ -131,10 +137,6 @@ class ImmoManager:
             del contact['portraitUrl']
         if 'portraitUrlForResultList' in contact:
             del contact['portraitUrlForResultList']
-        # Process pictures
-        picture_number = 0
-        if 'galleryAttachments' in entry['resultlist.realEstate']:
-            picture_number = len(entry['resultlist.realEstate']['galleryAttachments']['attachment'])
         # Calculate total apartment score
         raw_score = (20 * (size/hot_rent)) + (0.5 if built_in_kitchen else 0) + (0.5 if have_balcony else 0) + (4 * (1/distance_center)) + (room_number/8)
         normalized_score = raw_score * 100 + picture_number

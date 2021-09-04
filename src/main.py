@@ -12,6 +12,11 @@ if __name__ == '__main__':
         },
         'ImmoManager':{
             'first_url': os.environ['SEARCH_URL']
+        },
+        'TelegramBotManager':{
+            'bot_token': os.environ['BOT_TOKEN'],
+            'bot_chat_id': os.environ['BOT_CHAT_ID'],
+            'chat_ids': os.environ['CHAT_IDS']
         }
     })
     pipeline.execute()
