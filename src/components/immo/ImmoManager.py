@@ -1,175 +1,39 @@
-import os
-
 import requests
 import json
-import math
-
-# GoogleSheetManager
-import os.path
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-
-# Transformer
 from haversine import haversine
 
 
-class GoogleSheetManager:
+class ImmoManager:
 
-    token_file = 'token.json'
-    credentials_file = 'credentials-personal.json'
-    scopes = ['https://www.googleapis.com/auth/spreadsheets']
-    sheet_id = None
+    _total_success = 0
+    _total_exchange = 0
+    _total_wbs = 0
+    _total_rejected = 0
+    _total_entries = 0
 
-    configuration = None
-    credentials = None
-    service = None
-
-    def __init__(self, configuration):
-        self.configuration = configuration
-        if 'token_file' in configuration:
-            self.token_file = configuration['token_file']
-        if 'credentials_file' in configuration:
-            self.configuration = configuration['credentials_file']
-        if 'scopes' in configuration:
-            self.scopes = configuration['scopes']
-        if 'sheet_id' in configuration:
-            self.sheet_id = configuration['sheet_id']
-        self._authenticate()
-        self._get_service()
-
-    def set_spreadsheet(self, sheet_id):
-        self.sheet_id = sheet_id
-
-    def _authenticate(self):
-        creds = None
-        if os.path.exists(self.token_file):
-            creds = Credentials.from_authorized_user_file(self.token_file, self.scopes)
-
-        if creds and creds.valid:
-            self.credentials = creds
-            return
-
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(self.credentials_file, self.scopes)
-            creds = flow.run_local_server(port=0)
-
-        with open(self.token_file, 'w') as token:
-            token.write(creds.to_json())
-
-        self.credentials = creds
-
-    def _get_service(self):
-        self.service = build('sheets', 'v4', credentials=self.credentials)
-
-    def get_table_data_as_map_array(self, sheet_range):
-        sheet = self.service.spreadsheets()
-        result = sheet.values().get(spreadsheetId=self.sheet_id, range=sheet_range).execute()
-        values = result.get('values', [])
-
-        if not values:
-            print('ERROR:: No data found.')
-
-        # Get the columns to describe the rows, assume it will be in the header
-        header = values[0]
-        header_size = len(header)
-        sheet_rows = []
-        for row_number in range(1, len(values),1):
-            element_as_map = {}
-            for column_number in range(header_size):
-                element_as_map[header[column_number]] = values[row_number][column_number]
-            sheet_rows.append(element_as_map)
-
-        # print(json.dumps(sheet_rows, indent=3))
-        return sheet_rows
-
-    def set_table_data_from_map_array(self, sheet_range, data):
-        if len(data) == 0:
-            print('WARNING:: No data to process')
-            return
-
-        values = [list(data[0].keys())]
-        for row in data:
-            values.append(list(row.values()))
-        body = {
-            'values': values
-        }
-        result = self.service.spreadsheets().values().update(
-            spreadsheetId=self.sheet_id, valueInputOption='RAW', range=sheet_range, body=body
-        ).execute()
-        print('{0} cells updated.'.format(result.get('updatedCells')))
-
-    def append_table_data_from_map_array(self, sheet_range, data_as_map):
-        values = []
-        for row in data_as_map:
-            values.append(list(row.values()))
-        body = {
-            'values': values
-        }
-        result = self.service.spreadsheets().values().append(
-            spreadsheetId=self.sheet_id, valueInputOption='RAW', range=sheet_range, body=body
-        ).execute()
-        print('{0} cells updated.'.format(result.get('updatedCells')))
-
-
-class ApartmentIntegrationPipeline:
-
-    total_success = 0
-    total_exchange = 0
-    total_wbs = 0
-    total_rejected = 0
-    total_entries = 0
-    configuration = None
-    sheet_range = None
-    gsheet_manager_conf = None
-
-    # ImmoLoader conf
-    first_url = None
+    _configuration = None
+    _first_url = None
 
     def __init__(self, configuration):
-        self.configuration = configuration
-        if 'sheet_range' in configuration:
-            self.sheet_range = configuration['sheet_range']
-        self.gsheet_manager_conf = configuration['GoogleSheetManager']
-        # ImmoLoader
+        self._configuration = configuration
         if 'first_url' in configuration:
-            self.first_url = configuration['first_url']
+            self._first_url = configuration['first_url']
 
-    def execute(self):
+    def set_first_url(self,url):
+        self._first_url = url
 
-        search_results = self._get_search_results(self.first_url)
+    def get_processed_search_results(self):
+        search_results = self._get_search_results(self._first_url)
         processed_entries = self._process_search_results(search_results)
-        print(f'INFO:: There were {self.total_success} success, {self.total_exchange} exchange offers and {self.total_wbs} WBS from a total of {self.total_entries} entries')
-
-        sheet_manager = GoogleSheetManager(self.gsheet_manager_conf)
-        data = sheet_manager.get_table_data_as_map_array(self.sheet_range)
-
-        if len(data) > 0:
-            previous_entries = DataManipulationUtils.create_indexed_map_from_map_array(data, 'id')
-            previous_keys = previous_entries.keys()
-            current_keys = processed_entries.keys()
-            append_entries = {}
-            for current_key in current_keys:
-                if current_key not in previous_keys:
-                    append_entries[current_key] = processed_entries[current_key]
-            print(f'DEBUG:: Found {len(append_entries)} new entries in the new batch')
-            if append_entries:
-                sheet_manager.append_table_data_from_map_array(self.sheet_range, list(append_entries.values()))
-            return
-
-        sheet_manager.set_table_data_from_map_array(self.sheet_range, list(processed_entries.values()))
+        print(f'INFO:: There were {self._total_success} success, {self._total_exchange} exchange offers and {self._total_wbs} WBS from a total of {self._total_entries} entries')
+        return processed_entries
 
     def _get_search_results(self, url):
-
         request = requests.post(url)
         status_code = request.status_code
         json_body = json.loads(request.content)
         if status_code >= 200:
             print(f'INFO:: The request was successfuly processed with code {status_code}')
-            # print(json_body)
         else:
             print(f'WARNING:: The request was wrongly processed with code {status_code}, you suck!!')
 
@@ -198,7 +62,7 @@ class ApartmentIntegrationPipeline:
         number_of_pages = metadata['paging']['numberOfPages']
         number_of_hits = metadata['paging']['numberOfHits']
         number_of_listings = metadata['paging']['numberOfListings']
-        self.total_entries = number_of_listings
+        self._total_entries = number_of_listings
         if 'next' in metadata['paging']:
             next_page = metadata['paging']['next']['@xlink.href']
         else:
@@ -220,7 +84,7 @@ class ApartmentIntegrationPipeline:
             if id is None or processed_entry is None:
                 continue
             processed_entries[id] = processed_entry
-            self.total_success += 1
+            self._total_success += 1
             # print(f'DEBUG:: Processing {processed_entry}')
 
         return processed_entries
@@ -232,11 +96,11 @@ class ApartmentIntegrationPipeline:
         title = entry['resultlist.realEstate']['title']
         if 'tauschwohnung' in title.lower():
             # print(f'DEBUG:: The id {id} is an exchange apartment and will be rejected')
-            self.total_exchange += 1
+            self._total_exchange += 1
             return None, None, [{'code': 'E001', 'message': 'Exchange entries are not valid'}]
         if 'wbs' in title.lower():
             # print(f'DEBUG:: The id {id} requires wbs and will be rejected')
-            self.total_wbs += 1
+            self._total_wbs += 1
             return None, None, [{'code': 'E002', 'message': 'WBS entries are not valid'}]
         # Process address
         address = entry['resultlist.realEstate']['address']
@@ -298,25 +162,3 @@ class ApartmentIntegrationPipeline:
         }
 
         return id, processed_entry, {}
-
-
-class DataManipulationUtils:
-
-    @staticmethod
-    def create_indexed_map_from_map_array(data, id_key):
-        indexed_data = {}
-        for entry in data:
-            indexed_data[entry[id_key]] = entry
-        return indexed_data
-
-
-if __name__ == '__main__':
-
-    pipeline = ApartmentIntegrationPipeline({
-        'first_url': os.environ['SEARCH_URL'],
-        'sheet_range': 'Listado!B2:S',
-        'GoogleSheetManager': {
-            'sheet_id': os.environ['SHEET_ID']
-        }
-    })
-    pipeline.execute()
