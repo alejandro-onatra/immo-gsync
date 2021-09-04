@@ -101,7 +101,7 @@ class GoogleSheetManager:
         print('{0} cells updated.'.format(result.get('updatedCells')))
 
     def append_table_data_from_map_array(self, sheet_range, data_as_map):
-        values = [list(data_as_map[0].keys())]
+        values = []
         for row in data_as_map:
             values.append(list(row.values()))
         body = {
@@ -226,7 +226,7 @@ class ApartmentIntegrationPipeline:
     def _process_single_apartment(self, entry):
 
         id = entry['@id']
-
+        # Filter out
         title = entry['resultlist.realEstate']['title']
         if 'tauschwohnung' in title.lower():
             # print(f'DEBUG:: The id {id} is an exchange apartment and will be rejected')
@@ -236,7 +236,7 @@ class ApartmentIntegrationPipeline:
             # print(f'DEBUG:: The id {id} requires wbs and will be rejected')
             self.total_wbs += 1
             return None, None, [{'code': 'E002', 'message': 'WBS entries are not valid'}]
-
+        # Process address
         address = entry['resultlist.realEstate']['address']
         if 'wgs84Coordinate' in address:
             latitude = address['wgs84Coordinate']['latitude']
@@ -245,6 +245,10 @@ class ApartmentIntegrationPipeline:
             latitude = 0
             longitude = 0
         quarter = address['quarter']
+        center_coordinates = (52.519606771749594, 13.407080083827983)
+        apartment_coordinates = (latitude, longitude)
+        distance_center = haversine(center_coordinates, apartment_coordinates) if latitude > 0 and longitude > 0 else 9999
+        # Process main apartment features
         cold_rent = entry['resultlist.realEstate']['price']['value']
         hot_rent = entry['resultlist.realEstate']['calculatedTotalRent']['totalRent']['value']
         size = entry['resultlist.realEstate']['livingSpace']
@@ -255,22 +259,22 @@ class ApartmentIntegrationPipeline:
             energy_efficiency = entry['resultlist.realEstate']['energyEfficiencyClass']
         else:
             energy_efficiency = 'Not available'
+        # Process contact information
         contact = entry['resultlist.realEstate']['contactDetails']
         if 'portraitUrl' in contact:
             del contact['portraitUrl']
         if 'portraitUrlForResultList' in contact:
             del contact['portraitUrlForResultList']
-        picture_number = len(entry['resultlist.realEstate']['galleryAttachments']['attachment'])
-
-        center_coordinates = (52.519606771749594, 13.407080083827983)
-        apartment_coordinates = (latitude, longitude)
-        distance_center = haversine(center_coordinates, apartment_coordinates) if latitude > 0 and longitude > 0 else 9999
-
+        # Process pictures
+        picture_number = 0
+        if 'galleryAttachments' in entry['resultlist.realEstate']:
+            picture_number = len(entry['resultlist.realEstate']['galleryAttachments']['attachment'])
+        # Calculate total apartment score
         raw_score = (20 * (size/hot_rent)) + (0.5 if built_in_kitchen else 0) + (0.5 if have_balcony else 0) + (4 * (1/distance_center)) + (room_number/8)
         normalized_score = raw_score * 100 + picture_number
 
-        # TODO: The nested jsons are invalid to send to gsheet, needs to be unext or stringified
         processed_entry = {
+            'opinion': '', # temporal usage as i need one empty space in the google sheet
             'application_state': 'Abierto',
             'score': normalized_score,
             'cold_rent': cold_rent,
@@ -308,7 +312,7 @@ if __name__ == '__main__':
 
     pipeline = ApartmentIntegrationPipeline({
         'first_url': 'https://www.immobilienscout24.de/Suche/radius/wohnung-mieten?centerofsearchaddress=Berlin;;;;;&numberofrooms=2.0-&price=-1100.0&livingspace=60.0-&pricetype=rentpermonth&geocoordinates=52.51051;13.43068;10.0&enteredFrom=result_list',
-        'sheet_range': 'ListadoRaw!B2:S',
+        'sheet_range': 'Listado!B2:S',
         'GoogleSheetManager': {
             'sheet_id': '1hooYLbOZrmRSFggVpn4u2zfMNXt2J0asvinYVOgCoV0'
         }
