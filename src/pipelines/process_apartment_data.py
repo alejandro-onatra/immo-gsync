@@ -53,7 +53,9 @@ class ApartmentIntegrationPipeline:
                 self._append_entries = append_entries
             return
 
+        # In case of no previous entries
         sheet_manager.set_table_data_from_map_array(self._sheet_range, list(self._processed_entries.values()))
+        self._append_entries = self._processed_entries
 
     def _send_alerts_for_best_apartments(self):
 
@@ -62,7 +64,6 @@ class ApartmentIntegrationPipeline:
         for entry in self._append_entries.values():
             if entry['score'] > 400 and entry['distance_center'] <= 4 and entry['hot_rent'] < 1200:
                 notification_entry_ids.add(entry['id'])
-
         for id in notification_entry_ids:
             entry = self._append_entries[id]
             hot_rent = entry['hot_rent']

@@ -42,7 +42,7 @@ class TelegramBotManager:
             request_args['chat_id'] = chat_id
             request_url = self._build_request(RequestType.SEND_MESSAGE, request_args)
             response = requests.get(request_url)
-            print(response.json())
             responses.append(response)
+            print(response.status_code)
 
         return responses

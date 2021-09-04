@@ -1,4 +1,5 @@
 import requests
+import datetime
 import json
 from haversine import haversine
 
@@ -137,6 +138,9 @@ class ImmoManager:
             del contact['portraitUrl']
         if 'portraitUrlForResultList' in contact:
             del contact['portraitUrlForResultList']
+        # Get key dates
+        publish_date = entry['@publishDate']
+        timestamp = datetime.datetime.now()
         # Calculate total apartment score
         raw_score = (20 * (size/hot_rent)) + (0.5 if built_in_kitchen else 0) + (0.5 if have_balcony else 0) + (4 * (1/distance_center)) + (room_number/8)
         normalized_score = raw_score * 100 + picture_number
@@ -161,6 +165,8 @@ class ImmoManager:
             'contact': str(contact),
             'title': title,
             'id': id,
+            'publish_date': str(publish_date),
+            'timestamp': str(timestamp)
         }
 
         return id, processed_entry, {}
