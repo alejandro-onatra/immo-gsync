@@ -149,11 +149,13 @@ class ApartmentIntegrationPipeline:
             previous_entries = DataManipulationUtils.create_indexed_map_from_map_array(data, 'id')
             previous_keys = previous_entries.keys()
             current_keys = processed_entries.keys()
-            append_keys = set()
+            append_entries = {}
             for current_key in current_keys:
                 if current_key not in previous_keys:
-                    append_keys.add(current_key)
-            sheet_manager.append_table_data_from_map_array(self.sheet_range, list(processed_entries.values()))
+                    append_entries[current_key] = processed_entries[current_key]
+            print(f'DEBUG:: Found {len(append_entries)} new entries in the new batch')
+            if append_entries:
+                sheet_manager.append_table_data_from_map_array(self.sheet_range, list(append_entries.values()))
             return
 
         sheet_manager.set_table_data_from_map_array(self.sheet_range, list(processed_entries.values()))
