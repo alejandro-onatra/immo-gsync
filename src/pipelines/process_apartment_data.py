@@ -1,4 +1,5 @@
-import os
+import datetime
+import json
 from src.components.immo.ImmoManager import ImmoManager
 from src.components.gcp.gdrive.GoogleSheetManager import GoogleSheetManager
 from src.commons.DataManipulationUtils import DataManipulationUtils
@@ -9,6 +10,10 @@ class ApartmentIntegrationPipeline:
 
     _processed_entries = None
     _append_entries = None
+    _notification_status = None
+    _immo_manager = None
+    _gsheet_manager = None
+    _telegram_bot = None
 
     _configuration = None
     _sheet_range = None
@@ -23,21 +28,23 @@ class ApartmentIntegrationPipeline:
         self._gsheet_manager_conf = configuration['GoogleSheetManager']
         self._immo_manager_conf = configuration['ImmoManager']
         self._telegram_bot_conf = configuration['TelegramBotManager']
+        self._telegram_bot = TelegramBotManager(self._telegram_bot_conf)
 
     def execute(self):
         self._extract_apartment_data()
         self._load_data_to_sheets()
         if self._append_entries:
             self._send_alerts_for_best_apartments()
+        self._notify_process_metadata()
 
     def _extract_apartment_data(self):
-        immo_manager = ImmoManager(self._immo_manager_conf)
-        processed_entries = immo_manager.get_processed_search_results()
+        self._immo_manager = ImmoManager(self._immo_manager_conf)
+        processed_entries = self._immo_manager.get_processed_search_results()
         self._processed_entries = processed_entries
 
     def _load_data_to_sheets(self):
-        sheet_manager = GoogleSheetManager(self._gsheet_manager_conf)
-        data = sheet_manager.get_table_data_as_map_array(self._sheet_range)
+        self._sheet_manager = GoogleSheetManager(self._gsheet_manager_conf)
+        data = self._sheet_manager.get_table_data_as_map_array(self._sheet_range)
         previous_entries = DataManipulationUtils.create_indexed_map_from_map_array(data, 'id') if len(data) > 0 else []
 
         if len(previous_entries) > 0:
@@ -49,17 +56,16 @@ class ApartmentIntegrationPipeline:
                     append_entries[current_key] = self._processed_entries[current_key]
             print(f'DEBUG:: Found {len(append_entries)} new entries in the new batch')
             if append_entries:
-                sheet_manager.append_table_data_from_map_array(self._sheet_range, list(append_entries.values()))
+                self._sheet_manager.append_table_data_from_map_array(self._sheet_range, list(append_entries.values()))
                 self._append_entries = append_entries
             return
 
         # In case of no previous entries
-        sheet_manager.set_table_data_from_map_array(self._sheet_range, list(self._processed_entries.values()))
+        self._sheet_manager.set_table_data_from_map_array(self._sheet_range, list(self._processed_entries.values()))
         self._append_entries = self._processed_entries
 
     def _send_alerts_for_best_apartments(self):
-
-        telegram_bot = TelegramBotManager(self._telegram_bot_conf)
+        responses = []
         notification_entry_ids = set()
         for entry in self._append_entries.values():
             if entry['score'] > 400 and entry['distance_center'] <= 4 and entry['hot_rent'] < 1200:
@@ -83,7 +89,17 @@ class ApartmentIntegrationPipeline:
             message += f'You can find more info at {url} and the location in {maps_url} \n'
 
             # Send messages 1 by 1 because it the text is too long it will failed.
-            telegram_bot.send_text_message_to_users(message, self._telegram_bot_conf['chat_ids'])
+            responses += self._telegram_bot.send_text_message_to_users(message, self._telegram_bot_conf['chat_ids'])
+
+        self._notification_status = responses
+
+    def _notify_process_metadata(self):
+        message = f'These are the results of the process at {str(datetime.datetime.now())} \n'
+        message += f'There were {self._immo_manager.total_success} success, {self._immo_manager.total_exchange} exchange offers and {self._immo_manager.total_wbs} WBS from a total of {self._immo_manager.total_entries} entries \n'
+        message += f'Found {len(self._append_entries) if self._append_entries else 0} new entries in the new batch \n'
+        message += f'The responses to the messages are: ```{self._notification_status}```'
+        responses = self._telegram_bot.send_text_message_to_users(message)
+
 
 
 

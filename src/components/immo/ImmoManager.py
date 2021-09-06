@@ -6,11 +6,12 @@ from haversine import haversine
 
 class ImmoManager:
 
-    _total_success = 0
-    _total_exchange = 0
-    _total_wbs = 0
-    _total_rejected = 0
-    _total_entries = 0
+    # TODO: Pythonic setter and getter missing
+    total_success = 0
+    total_exchange = 0
+    total_wbs = 0
+    total_rejected = 0
+    total_entries = 0
 
     _configuration = None
     _first_url = None
@@ -26,7 +27,7 @@ class ImmoManager:
     def get_processed_search_results(self):
         search_results = self._get_search_results(self._first_url)
         processed_entries = self._process_search_results(search_results)
-        print(f'INFO:: There were {self._total_success} success, {self._total_exchange} exchange offers and {self._total_wbs} WBS from a total of {self._total_entries} entries')
+        print(f'INFO:: There were {self.total_success} success, {self.total_exchange} exchange offers and {self.total_wbs} WBS from a total of {self.total_entries} entries')
         return processed_entries
 
     def _get_search_results(self, url):
@@ -63,7 +64,7 @@ class ImmoManager:
         number_of_pages = metadata['paging']['numberOfPages']
         number_of_hits = metadata['paging']['numberOfHits']
         number_of_listings = metadata['paging']['numberOfListings']
-        self._total_entries = number_of_listings
+        self.total_entries = number_of_listings
         if 'next' in metadata['paging']:
             next_page = metadata['paging']['next']['@xlink.href']
         else:
@@ -85,7 +86,7 @@ class ImmoManager:
             if id is None or processed_entry is None:
                 continue
             processed_entries[id] = processed_entry
-            self._total_success += 1
+            self.total_success += 1
             # print(f'DEBUG:: Processing {processed_entry}')
 
         return processed_entries
@@ -97,11 +98,11 @@ class ImmoManager:
         title = entry['resultlist.realEstate']['title']
         if 'tauschwohnung' in title.lower():
             # print(f'DEBUG:: The id {id} is an exchange apartment and will be rejected')
-            self._total_exchange += 1
+            self.total_exchange += 1
             return None, None, [{'code': 'E001', 'message': 'Exchange entries are not valid'}]
         if 'wbs' in title.lower():
             # print(f'DEBUG:: The id {id} requires wbs and will be rejected')
-            self._total_wbs += 1
+            self.total_wbs += 1
             return None, None, [{'code': 'E002', 'message': 'WBS entries are not valid'}]
         # Process pictures
         picture_number = 0

@@ -1,3 +1,5 @@
+import json
+
 import requests
 from enum import Enum
 
@@ -43,6 +45,4 @@ class TelegramBotManager:
             request_url = self._build_request(RequestType.SEND_MESSAGE, request_args)
             response = requests.get(request_url)
             responses.append(response)
-            print(response.status_code)
-
         return responses
