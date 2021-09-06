@@ -1,9 +1,5 @@
 import os
-import schedule
-import time
 from src.pipelines.process_apartment_data import ApartmentIntegrationPipeline
-from src.components.telegram.TelegramBotManager import TelegramBotManager
-
 
 def find_apartments():
     root = os.path.dirname(os.path.abspath(__file__))
@@ -27,8 +23,4 @@ def find_apartments():
 
 
 if __name__ == '__main__':
-    # schedule.every().hour.do(find_apartments)
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(1)
     find_apartments()

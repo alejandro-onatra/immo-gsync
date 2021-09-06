@@ -31,9 +31,10 @@ class ImmoManager:
         return processed_entries
 
     def _get_search_results(self, url):
-        request = requests.post(url)
-        status_code = request.status_code
-        json_body = json.loads(request.content)
+        print(url)
+        response = requests.post(url)
+        status_code = response.status_code
+        json_body = json.loads(response.content)
         if status_code >= 200:
             print(f'INFO:: The request was successfuly processed with code {status_code}')
         else:

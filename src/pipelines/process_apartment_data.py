@@ -29,6 +29,8 @@ class ApartmentIntegrationPipeline:
         self._immo_manager_conf = configuration['ImmoManager']
         self._telegram_bot_conf = configuration['TelegramBotManager']
         self._telegram_bot = TelegramBotManager(self._telegram_bot_conf)
+        self._sheet_manager = GoogleSheetManager(self._gsheet_manager_conf)
+        self._immo_manager = ImmoManager(self._immo_manager_conf)
 
     def execute(self):
         self._extract_apartment_data()
@@ -38,12 +40,10 @@ class ApartmentIntegrationPipeline:
         self._notify_process_metadata()
 
     def _extract_apartment_data(self):
-        self._immo_manager = ImmoManager(self._immo_manager_conf)
         processed_entries = self._immo_manager.get_processed_search_results()
         self._processed_entries = processed_entries
 
     def _load_data_to_sheets(self):
-        self._sheet_manager = GoogleSheetManager(self._gsheet_manager_conf)
         data = self._sheet_manager.get_table_data_as_map_array(self._sheet_range)
         previous_entries = DataManipulationUtils.create_indexed_map_from_map_array(data, 'id') if len(data) > 0 else []
 
@@ -97,7 +97,8 @@ class ApartmentIntegrationPipeline:
         message = f'These are the results of the process at {str(datetime.datetime.now())} \n'
         message += f'There were {self._immo_manager.total_success} success, {self._immo_manager.total_exchange} exchange offers and {self._immo_manager.total_wbs} WBS from a total of {self._immo_manager.total_entries} entries \n'
         message += f'Found {len(self._append_entries) if self._append_entries else 0} new entries in the new batch \n'
-        message += f'The responses to the messages are: ```{self._notification_status}```'
+        if self._notification_status:
+            message += f'The responses to the messages are: ```{self._notification_status}```'
         responses = self._telegram_bot.send_text_message_to_users(message)
 
 
