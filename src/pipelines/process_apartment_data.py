@@ -98,7 +98,8 @@ class ApartmentIntegrationPipeline:
         message += f'There were {self._immo_manager.total_success} success, {self._immo_manager.total_exchange} exchange offers and {self._immo_manager.total_wbs} WBS from a total of {self._immo_manager.total_entries} entries \n'
         message += f'Found {len(self._append_entries) if self._append_entries else 0} new entries in the new batch \n'
         if self._notification_status:
-            message += f'The responses to the messages are: ```{self._notification_status}```'
+            for response in self._notification_status:
+                message += f'The responses to the notification is: ```{json.loads(response.content)}```'
         responses = self._telegram_bot.send_text_message_to_users(message)
 
 

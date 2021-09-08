@@ -31,7 +31,6 @@ class ImmoManager:
         return processed_entries
 
     def _get_search_results(self, url):
-        print(url)
         response = requests.post(url)
         status_code = response.status_code
         json_body = json.loads(response.content)
