@@ -89,7 +89,7 @@ class ApartmentIntegrationPipeline:
             message += f'You can find more info at {url} and the location in {maps_url} \n'
 
             # Send messages 1 by 1 because it the text is too long it will failed.
-            responses += self._telegram_bot.send_text_message_to_users(message, self._telegram_bot_conf['chat_ids'])
+            responses.append(self._telegram_bot.send_text_message_to_users(message, self._telegram_bot_conf['chat_ids']))
 
         self._notification_status = responses
 
