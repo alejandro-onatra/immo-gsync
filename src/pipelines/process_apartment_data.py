@@ -100,7 +100,7 @@ class ApartmentIntegrationPipeline:
         if self._notification_status:
             for response in self._notification_status:
                 message += f'The responses to the notification is: ```{json.loads(response.content)}```'
-        responses = self._telegram_bot.send_text_message_to_users(message)
+            responses = self._telegram_bot.send_text_message_to_users(message)
 
 
 
