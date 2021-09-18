@@ -21,7 +21,7 @@ class GoogleSheetManager:
         if 'token_file' in configuration:
             self._token_file = configuration['token_file']
         if 'credentials_file' in configuration:
-            self._configuration = configuration['credentials_file']
+            self._credentials_file = configuration['credentials_file']
         if 'scopes' in configuration:
             self._scopes = configuration['scopes']
         if 'sheet_id' in configuration:

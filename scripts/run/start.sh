@@ -17,12 +17,12 @@ if [ -f "$properties_file" ]; then
   done < "$properties_file"
 else
   echo "$properties_file not found."
+  echo "Using the environmental variables given in the container"
 fi
 
 # Schedule script
 src_folder="$(cd ../../ && pwd)/src/"
 main_name="main.py"
-cron_schedule="30 */1 * * *"
 script_path="${src_folder}${main_name}"
 echo "The script path is ${script_path}"
 python3 ${script_path}
