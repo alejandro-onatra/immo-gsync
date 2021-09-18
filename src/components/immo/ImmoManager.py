@@ -74,7 +74,7 @@ class ImmoManager:
         else:
             next_page = None
 
-        print(f'INFO:: We are on the page {page_number} of {page_size} viewing {number_of_listings} listings.')
+        print(f'INFO:: We are on the page {page_number} of {number_of_pages} viewing {number_of_listings} listings.')
         print(f'DEBUG:: The next page is: {next_page}')
 
         return next_page, number_of_pages, page_number, page_size

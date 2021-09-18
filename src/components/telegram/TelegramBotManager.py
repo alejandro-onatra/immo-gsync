@@ -40,10 +40,12 @@ class TelegramBotManager:
     # Bulkified for the user but use one by one for now.
     def send_text_message_to_users(self, message, chat_ids=None):
         responses = []
-        request_args = {'text_message': message}
         chat_id_list = chat_ids.split(',') if chat_ids else [self._bot_chat_id]
         for chat_id in chat_id_list:
-            request_args['chat_id'] = chat_id
+            request_args = {
+                'text_message': message,
+                'chat_id': chat_id
+            }
             request_url = self._build_request(RequestType.SEND_MESSAGE, request_args)
             response = requests.get(request_url)
             responses.append(response)

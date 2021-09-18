@@ -1,6 +1,7 @@
 import os
 from src.pipelines.process_apartment_data import ApartmentIntegrationPipeline
 
+
 def find_apartments():
     root = os.path.dirname(os.path.abspath(__file__))
     pipeline = ApartmentIntegrationPipeline({
@@ -11,7 +12,11 @@ def find_apartments():
             'credentials_file': root + '/credentials.json'
         },
         'ImmoManager': {
-            'first_url': os.environ['SEARCH_URL']
+            'first_url': os.environ['SEARCH_URL'],
+            'filters':{
+                'include_exchange': False,
+                'include_wbs': False
+            }
         },
         'TelegramBotManager': {
             'bot_token': os.environ['BOT_TOKEN'],
