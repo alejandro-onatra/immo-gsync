@@ -105,7 +105,8 @@ class ApartmentIntegrationPipeline:
             for response in self._notification_status:
                 message += f'The responses to the notification is: ```{json.loads(response.content)}```'
             responses = self._telegram_bot.send_text_message_to_users(message)
-        return responses
+
+
 
 
 
