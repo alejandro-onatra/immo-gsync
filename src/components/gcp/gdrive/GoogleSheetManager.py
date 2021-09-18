@@ -17,8 +17,8 @@ class GoogleSheetManager:
     _service = None
 
     def __init__(self, configuration):
-        """Constructor using standard a configuation map
-
+        """
+        Constructor using standard a configuation map
         :param configuration:
         """
         self._configuration = configuration

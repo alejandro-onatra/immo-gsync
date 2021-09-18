@@ -14,7 +14,8 @@ class TelegramBotManager:
     _base_url = 'https://api.telegram.org/bot'
 
     def __init__(self, configuration):
-        """Constructor using standard a configuation map
+        """
+        Constructor using standard a configuation map
 
         :param configuration:
         """
