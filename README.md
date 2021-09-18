@@ -13,7 +13,7 @@ Possible Integrations:
 * Telegram
 
 ---
-### Table of Contents
+#### Table of Contents
 - [Configuration and Use](#configuration)
 - [License](#license)
 ---
