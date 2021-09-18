@@ -16,6 +16,7 @@ class TelegramBotManager:
     def __init__(self, configuration):
         """
         Constructor using standard a configuation map
+
         :param configuration:
         """
         self._configuration = configuration
