@@ -5,7 +5,20 @@
 </div>
 
 # IMMO SYNC
-This is just a test to load apartments data and loads them into a google sheet to aid on my search for an apartment.
+An structured and extensible application or pipeline to help you aid in your apartment search. This application can to be
+used locally or is easily deployable into any cloud environment as a runnable docker image.
+
+Possible Integrations:
+* GoogleSheets
+* Telegram
+
+---
+### Table of Contents
+- [Configuration and Use](#configuration)
+- [License](#license)
+---
+## [Configuration and Use](#configuration)
+You can configure the apartment search manager 
 
 ## [Notes](#notes)
 For now the credentials for the gsheet either you can take inject them in the main file or the system will assume names and the location will be on the __src/__
