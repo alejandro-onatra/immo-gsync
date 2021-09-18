@@ -17,8 +17,7 @@ class ImmoManager:
     _first_url = None
 
     def __init__(self, configuration):
-        """
-        Constructor using standard a configuation map
+        """Constructor using standard a configuation map
 
         :param configuration:
         """
