@@ -1,5 +1,3 @@
-import json
-
 import requests
 from enum import Enum
 
@@ -16,6 +14,10 @@ class TelegramBotManager:
     _base_url = 'https://api.telegram.org/bot'
 
     def __init__(self, configuration):
+        """
+        Constructor using standard a configuation map
+        :param configuration:
+        """
         self._configuration = configuration
         if 'bot_token' in configuration:
             self._bot_token = configuration['bot_token']

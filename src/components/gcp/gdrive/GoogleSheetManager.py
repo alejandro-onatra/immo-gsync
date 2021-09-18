@@ -17,6 +17,10 @@ class GoogleSheetManager:
     _service = None
 
     def __init__(self, configuration):
+        """
+        Constructor using standard a configuation map
+        :param configuration:
+        """
         self._configuration = configuration
         if 'token_file' in configuration:
             self._token_file = configuration['token_file']

@@ -22,6 +22,10 @@ class ApartmentIntegrationPipeline:
     _telegram_bot_conf = None
 
     def __init__(self, configuration):
+        """
+        Constructor using standard a configuation map
+        :param configuration:
+        """
         self._configuration = configuration
         if 'sheet_range' in configuration:
             self._sheet_range = configuration['sheet_range']
@@ -70,8 +74,8 @@ class ApartmentIntegrationPipeline:
         for entry in self._append_entries.values():
             if entry['score'] > 400 and entry['distance_center'] <= 4 and entry['hot_rent'] < 1200:
                 notification_entry_ids.add(entry['id'])
-        for id in notification_entry_ids:
-            entry = self._append_entries[id]
+        for entry_id in notification_entry_ids:
+            entry = self._append_entries[entry_id]
             hot_rent = entry['hot_rent']
             size = entry['size']
             distance_center = entry['distance_center']
@@ -82,7 +86,7 @@ class ApartmentIntegrationPipeline:
             maps_url = entry['maps_url']
             built_in_kitchen = 'has a fitted kitchen' if entry['built_in_kitchen'] else 'does not have a fitted kitchen'
             have_balcony = 'has a balcony' if entry['have_balcony'] else 'does not have a balcony'
-            message = f'Apartment id: {id} with {score} points.\n'
+            message = f'Apartment id: {entry_id} with {score} points.\n'
             message += f'The apartment has *{size}sqm* and *{room_number}* rooms. The rent cost in total *{hot_rent}* euros, ' \
                        f'it is located in *{quarter}* at *{distance_center} km* from the center. ' \
                        f'It {built_in_kitchen} and {have_balcony}. \n'
@@ -101,6 +105,7 @@ class ApartmentIntegrationPipeline:
             for response in self._notification_status:
                 message += f'The responses to the notification is: ```{json.loads(response.content)}```'
             responses = self._telegram_bot.send_text_message_to_users(message)
+        return responses
 
 
 

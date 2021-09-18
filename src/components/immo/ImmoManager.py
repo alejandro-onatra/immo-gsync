@@ -17,6 +17,10 @@ class ImmoManager:
     _first_url = None
 
     def __init__(self, configuration):
+        """
+        Constructor using standard a configuation map
+        :param configuration:
+        """
         self._configuration = configuration
         if 'first_url' in configuration:
             self._first_url = configuration['first_url']
@@ -30,7 +34,8 @@ class ImmoManager:
         print(f'INFO:: There were {self.total_success} success, {self.total_exchange} exchange offers and {self.total_wbs} WBS from a total of {self.total_entries} entries')
         return processed_entries
 
-    def _get_search_results(self, url):
+    @staticmethod
+    def _get_search_results(url):
         response = requests.post(url)
         status_code = response.status_code
         json_body = json.loads(response.content)
@@ -62,7 +67,6 @@ class ImmoManager:
         page_number = metadata['paging']['pageNumber']
         page_size = metadata['paging']['pageSize']
         number_of_pages = metadata['paging']['numberOfPages']
-        number_of_hits = metadata['paging']['numberOfHits']
         number_of_listings = metadata['paging']['numberOfListings']
         self.total_entries = number_of_listings
         if 'next' in metadata['paging']:
@@ -82,10 +86,10 @@ class ImmoManager:
         print(f'DEBUG:: Processing {len(entry_list)} entries')
 
         for entry in entry_list:
-            id, processed_entry, errors = self._process_single_apartment(entry)
-            if id is None or processed_entry is None:
+            entry_id, processed_entry, errors = self._process_single_apartment(entry)
+            if entry_id is None or processed_entry is None:
                 continue
-            processed_entries[id] = processed_entry
+            processed_entries[entry_id] = processed_entry
             self.total_success += 1
             # print(f'DEBUG:: Processing {processed_entry}')
 
@@ -93,7 +97,7 @@ class ImmoManager:
 
     def _process_single_apartment(self, entry):
 
-        id = entry['@id']
+        entry_id = entry['@id']
         # Filter out
         title = entry['resultlist.realEstate']['title']
         if 'tauschwohnung' in title.lower():
@@ -158,16 +162,16 @@ class ImmoManager:
             'distance_center': distance_center,
             'built_in_kitchen': built_in_kitchen,
             'have_balcony': have_balcony,
-            'url': f'https://www.immobilienscout24.de/expose/{id}',
+            'url': f'https://www.immobilienscout24.de/expose/{entry_id}',
             'number_of_pics': picture_number,
             'energy_efficiency': energy_efficiency,
             'maps_url': f'https://www.google.com/maps/@{latitude},{longitude},18z',
             'address': str(address),
             'contact': str(contact),
             'title': title,
-            'id': id,
+            'id': entry_id,
             'publish_date': str(publish_date),
             'timestamp': str(timestamp)
         }
 
-        return id, processed_entry, {}
+        return entry_id, processed_entry, {}
