@@ -1,4 +1,4 @@
-root_folder=$( cd ../../ && pwd )
+root_folder=$(pwd)
 
 # Check PYTHONPATH
 echo "Found that the PYTHON path is [${PYTHONPATH}]"
@@ -21,7 +21,7 @@ else
 fi
 
 # Schedule script
-src_folder="$(cd ../../ && pwd)/src/"
+src_folder="$(pwd)/src/"
 main_name="main.py"
 script_path="${src_folder}${main_name}"
 echo "The script path is ${script_path}"
