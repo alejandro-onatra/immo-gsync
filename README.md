@@ -9,8 +9,8 @@ An structured and extensible application or pipeline to help you aid in your apa
 used locally or is easily deployable into any cloud environment as a runnable docker image.
 
 Possible Integrations:
-  *GoogleSheets
-  *Telegram
+-    GoogleSheets
+-    Telegram
 
 ---
 #### Table of Contents
