@@ -22,6 +22,9 @@ def find_apartments():
             'bot_token': os.environ['BOT_TOKEN'],
             'bot_chat_id': os.environ['BOT_CHAT_ID'],
             'chat_ids': os.environ['CHAT_IDS']
+        },
+        'notification_filters':{
+            'rent': 400
         }
     })
     pipeline.execute()
