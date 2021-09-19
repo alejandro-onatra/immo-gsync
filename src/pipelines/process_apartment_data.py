@@ -87,9 +87,9 @@ class ApartmentIntegrationPipeline:
             maps_url = entry['maps_url']
             built_in_kitchen = 'has a fitted kitchen' if entry['built_in_kitchen'] else 'does not have a fitted kitchen'
             have_balcony = 'has a balcony' if entry['have_balcony'] else 'does not have a balcony'
-            message = f'Apartment id: {entry_id} with {score} points.\n'
-            message += f'The apartment has *{size}sqm* and *{room_number}* rooms. The rent cost in total *{hot_rent}* euros, ' \
-                       f'it is located in *{quarter}* at *{distance_center} km* from the center. ' \
+            message = f'Apartment id: {entry_id} with *{int(score)} points*.\n'
+            message += f'The apartment has *{size} sqm* and *{room_number} rooms* . The rent cost in total *{hot_rent} euros* , ' \
+                       f'it is located in *{quarter}* at *{int(distance_center)} km* from the center. ' \
                        f'It {built_in_kitchen} and {have_balcony}. \n'
             message += f'You can find more info at {url} and the location in {maps_url} \n'
 
