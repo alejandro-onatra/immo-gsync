@@ -104,7 +104,8 @@ class ApartmentIntegrationPipeline:
         message += f'Found {len(self._append_entries) if self._append_entries else 0} new entries in the new batch \n'
         if self._notification_status:
             for response in self._notification_status:
-                message += f'The responses to the notification is: ```{json.loads(response.content)}```'
+                message += f'The responses to the notification is: ' \
+                           f'```{ json.loads(response.content) if response and response.content else str(response)}```'
         responses = self._telegram_bot.send_text_message_to_users(message)
 
 
