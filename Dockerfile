@@ -11,7 +11,6 @@ FROM python:latest AS run
 WORKDIR /app/
 COPY --from=build /app/ ./
 RUN pip3 install -r /app/requirements.txt
-RUN ls -la
 ENTRYPOINT ["/bin/bash","/app/scripts/run/start.sh"]
 
 
