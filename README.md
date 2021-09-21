@@ -14,8 +14,8 @@ Possible Integrations:
 
 ---
 #### Table of Contents
--    [Configuration and Use](#configuration)
--    [License](#license)
+- [Configuration and Use](#configuration)
+- [License](#license)
 ---
 ## [Configuration and Use](#configuration)
 You can configure the apartment search manager 
